@@ -24,7 +24,7 @@ class UnpackableMixin(object):
         """
         from struct import Struct
 
-        st = Struct(cls.unpack_format, data)
+        st = Struct(cls.unpack_format)
         raw = data[0:st.size]
         data = data[st.size:len(data)]
         args = st.unpack(raw)
