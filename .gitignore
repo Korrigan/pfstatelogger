@@ -1,3 +1,2 @@
-sys
-src
-sys.tar.gz
+*~
+*.pyc
