@@ -17,16 +17,15 @@ class Header(UnpackableMixin):
     """
     unpack_format = '!bbh16s'
 
-    def __init__(self, version, pad, len, checksum):
+    def __init__(self, version, pad, length, checksum):
         self.version = version
-        self.len = len
+        self.length = length
         self.checksum = checksum
 
-
     def dump(self):
-        print "PFSYNC version: %d" % version
-        print "PFSYNC packet length: %d" % len
-        print "CHECKSUM: %s" % checksum
+        print "PFSYNC version: %d" % self.version
+        print "PFSYNC packet length: %d" % self.length
+        print "CHECKSUM: %s" % self.checksum
 
 
 class SubHeader(UnpackableMixin):
@@ -45,7 +44,7 @@ class SubHeader(UnpackableMixin):
     """
     unpack_format = '!bbh'
 
-    def __init__(self, action_id, len, count):
+    def __init__(self, action_id, length, count):
         self.action_id = action_id
-        self.len = len
+        self.length = length
         self.count = count
