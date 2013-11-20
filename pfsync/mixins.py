@@ -31,3 +31,12 @@ class UnpackableMixin(object):
         args += extra
         instance = cls(*args)
         return (instance, data)
+
+    @classmethod
+    def get_cstruct_size(cls):
+        """
+        Returns the size of the data that will be extracted when
+        unpacking.
+
+        """
+        return calcsize(cls.unpack_format)
