@@ -39,4 +39,6 @@ class UnpackableMixin(object):
         unpacking.
 
         """
+        from struct import calcsize
+
         return calcsize(cls.unpack_format)
