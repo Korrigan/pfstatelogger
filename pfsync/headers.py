@@ -15,7 +15,7 @@ class Header(UnpackableMixin):
     See OpenBSD source sys/net/if_pfsync.h
     
     """
-    unpack_format = '!bbh16s'
+    unpack_format = '!BBH16s'
 
     def __init__(self, version, pad, length, checksum):
         self.version = version
@@ -44,7 +44,7 @@ class SubHeader(UnpackableMixin):
     See OpenBSD source sys/net/if_pfsync.h
 
     """
-    unpack_format = '!bbh'
+    unpack_format = '!BBH'
 
     def __init__(self, action_id, length, count):
         self.action_id = action_id

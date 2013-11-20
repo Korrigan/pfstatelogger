@@ -12,6 +12,18 @@ class UnpackableMixin(object):
 
     """
     @classmethod
+    def get_unpack_format(cls):
+        """
+        This method returns the format string to be passed to unpack
+        method
+
+        Child classes MUST define cls.unpack_format or override this
+        method
+
+        """
+        return cls.unpack_format
+
+    @classmethod
     def from_data(cls, data, *extra):
         """
         This method return a tuple containing:
@@ -24,7 +36,7 @@ class UnpackableMixin(object):
         """
         from struct import Struct
 
-        st = Struct(cls.unpack_format)
+        st = Struct(cls.get_unpack_format())
         raw = data[0:st.size]
         data = data[st.size:len(data)]
         args = st.unpack(raw)
@@ -41,4 +53,4 @@ class UnpackableMixin(object):
         """
         from struct import calcsize
 
-        return calcsize(cls.unpack_format)
+        return calcsize(cls.get_unpack_format())

@@ -16,12 +16,14 @@ class Reader(object):
         This method parse the packet
 
         """
+        from .actions import build_from_header
+
         (self.header, data) = Header.from_data(data)
         while len(data) > SubHeader.get_cstruct_size():
             (shdr, data) = SubHeader.from_data(data)
-            next_offset = shdr.length * shdr.count
-            data = data[next_offset:]
-            self.actions.append(shdr)
+            (action, data) = build_from_header(shdr, data)
+            if action:
+                self.actions.append(action)
 
 
     def dump(self):
