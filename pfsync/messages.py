@@ -16,22 +16,33 @@ class PFStateKey(UnpackableMixin):
     """
     unpack_format = '16s16s 2HHBB'
 
+    @staticmethod
+    def format_addr(addr):
+        """
+        Format the IP address as a string
+        Does not works with IPV6 addresses
+
+        """
+        import socket
+
+        return socket.inet_ntoa(addr[:4])
+
     def __init__(self,
                  addr1, addr2,
                  port1, port2,
                  rdomain,
                  address_family,
                  pad):
-        self.addr = (addr1, addr2)
+        self.addr = (
+            self.format_addr(addr1),
+            self.format_addr(addr2))
         self.port = (port1, port2)
         self.address_family = address_family
-
+           
 
     def dump(self):
-        import socket
-
-        print "ADDR1: %s:%d" % (socket.inet_ntoa(self.addr[0][:4]), self.port[0])
-        print "ADDR2: %s:%d" % (socket.inet_ntoa(self.addr[1][:4]), self.port[1])
+        print "ADDR1: %s:%d" % (self.addr[0], self.port[0])
+        print "ADDR2: %s:%d" % (self.addr[1], self.port[1])
                                 
 
 class MessageState(UnpackableMixin):
@@ -123,25 +134,88 @@ class MessageState(UnpackableMixin):
                  set_tos,
                  state_flags,
                  pad1, pad2):
-        self.rt_addr = (rt_addr1, rt_addr2, rt_addr3, rt_addr4)
+        self.id = id
+        self.interface = ifname
         self.key = (PFStateKey.from_data(key1)[0],
                     PFStateKey.from_data(key2)[0])
-        self.src = src # To unpack
-        self.dst = dst # To unpack
         self.packets = ((packets1, packets2), (packets3, packets4))
         self.bytes = ((bytes1, bytes2), (bytes3, bytes4))
         self.protocol = protocol
         self.direction = direction
         self.timeout = timeout
+        self.expire = expire
+        self.creation = creation
+
+    def __str__(self):
+        str = "%s " % self.get_protocol_name()
+        if self.is_nat():
+            str += "%(pub_source)s:%(pub_port)d (%(priv_source)s:%(priv_port)d) -> %(dest)s:%(dest_port)d" % {
+                'pub_source': self.key[0].addr[1],
+                'pub_port': self.key[0].port[1],
+                'priv_source': self.key[1].addr[1],
+                'priv_port': self.key[1].port[1],
+                'dest': self.key[0].addr[0],
+                'dest_port': self.key[0].port[0]
+                }
+        else:
+            str += "%(pub_source)s:%(pub_port)d -> %(dest)s:%(dest_port)d" % {
+                'pub_source': self.key[0].addr[1],
+                'pub_port': self.key[0].port[1],
+                'dest': self.key[0].addr[0],
+                'dest_port': self.key[0].port[0]
+                }
+        return str
+
+    def is_nat(self):
+        """
+        This method determines if the source was NATted
+        """
+        return self.key[1].addr[1] != self.key[0].addr[1]
+
+    def get_protocol_name(self):
+        """
+        Returns the protocol name based on the protocol id
+        Should use a stdlib method instead of this dirty quick solution
+
+        """
+        if self.protocol == 1:
+            return "ICMP"
+        elif self.protocol == 6:
+            return "TCP"
+        elif self.protocol == 17:
+            return "UDP"
+        else:
+            return str(self.protocol)
 
     def dump(self):
         """Simple debug printing method"""
-        if self.direction != 2:
-            print "OSEF"
-            return
+        print "ID: %d" % self.id
+        print "IFACE: %s" % self.interface
         print "PROTOCOL: %d" % self.protocol
         print "DIRECTION: %d" % self.direction
         print "TIMEOUT: %d" % self.timeout
-        print "RT_ADDR: %d.%d.%d.%d" % self.rt_addr
+        print "CREATION: %d" % self.creation
+        print "EXPIRES: %d" % self.expire
         self.key[0].dump()
         self.key[1].dump()
+
+
+class MessageDeleteCompressed(UnpackableMixin):
+    """
+    This class handle pfsync_del_c messages.
+    It follows the same structure as the following C struct:
+    struct pfsync_del_c {
+    u_int64_t                       id;
+    u_int32_t                       creatorid;
+    } __packed;
+
+    See OpenBSD sources sys/net/if_pfsync.h
+
+    """
+    unpack_format = '!QI'
+
+    def __init__(self, id, creator_id):
+        self.id = id
+
+    def dump(self):
+        print "Deleted state %d" % self.id
