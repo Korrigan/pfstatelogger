@@ -19,7 +19,7 @@ class Reader(object):
         from .actions import build_from_header
 
         (self.header, data) = Header.from_data(data)
-        while len(data) > SubHeader.get_cstruct_size():
+        while len(data) >= SubHeader.get_cstruct_size():
             (shdr, data) = SubHeader.from_data(data)
             (action, data) = build_from_header(shdr, data)
             if action:
