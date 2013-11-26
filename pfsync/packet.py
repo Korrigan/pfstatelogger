@@ -4,8 +4,11 @@ class Reader(object):
     """
     This class parse a PFSYNC packet into header, subheaders and actions
     list
+    It only deals with pfsync version 6
 
     """
+    PFSYNC_VERSION = 6
+
     def __init__(self, data=None):
         self.actions = []
         if data:
@@ -13,37 +16,36 @@ class Reader(object):
 
     def parse(self, data):
         """
-        This method parse the packet
+        This method parse the packet and create needed action and message classes
+        It may fails if packet are a bad version
 
         """
         from .actions import build_from_header
 
         (self.header, data) = Header.from_data(data)
+        if not self.header.version == self.PFSYNC_VERSION:
+            print "WARNING: dealing with bad pfsync version (%d)" % self.header.version
         while len(data) >= SubHeader.get_cstruct_size():
             (shdr, data) = SubHeader.from_data(data)
             (action, data) = build_from_header(shdr, data)
             if action:
                 self.actions.append(action)
-
-
-    def dump(self):
-        """Simple debug printing method"""
-        self.header.dump()
-        for a in self.actions:
-            print "--"
-            a.dump()
-            print "--"
+        if len(data) > 0:
+            print "WARNING: there is still data to process"
 
 
 class StateManager(object):
     """
-    This class is used to manage states
-    It keep a state table in memory and log messages when needed
+    This class is used to manage PF states.
+    It handle all pfsync actions (when parsed into the correct action
+    classes) and log the needed things.
+
+    This is the class that you should extends or replace if you need
+    more of pfstatelogger.py
 
     """
 
     def __init__(self):
-        self.states = []
         self.handles = [
             self._clr_states,
             None,
@@ -65,9 +67,12 @@ class StateManager(object):
 
     def handle_action(self, action):
         """
-        Handle an action class and update the state table in this way
         This method call the right internal method for each message of
         the action class.
+        The self.handles array is built according to PFSYNC_ACTIONS
+        defines.
+
+        See also .actions.build_from_header
 
         """
         id = action.header.action_id
