@@ -25,5 +25,10 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         usage()
     r = pcapy.open_live(sys.argv[1], 1600, False, 100)
+    # DLT_PFSYNC == 18
+    # See OpenBSD sources sys/net/bpf.h
+    if not r.datalink() == 18:
+        print "Interface %s is not a pfsync interface" % sys.argv[1]
+        sys.exit(1)
     r.loop(-1, recv_pkt)
     sys.exit(0)
