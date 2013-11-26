@@ -14,7 +14,7 @@ class PFStateKey(UnpackableMixin):
     See OpenBSD sources sys/net/pfvar.h
 
     """
-    unpack_format = '16s16s 2HHBB'
+    unpack_format = '!16s16s 2HHBB'
 
     @staticmethod
     def format_addr(addr):
@@ -27,6 +27,7 @@ class PFStateKey(UnpackableMixin):
 
         return socket.inet_ntoa(addr[:4])
 
+
     def __init__(self,
                  addr1, addr2,
                  port1, port2,
@@ -38,12 +39,7 @@ class PFStateKey(UnpackableMixin):
             self.format_addr(addr2))
         self.port = (port1, port2)
         self.address_family = address_family
-           
 
-    def dump(self):
-        print "ADDR1: %s:%d" % (self.addr[0], self.port[0])
-        print "ADDR2: %s:%d" % (self.addr[1], self.port[1])
-                                
 
 class MessageState(UnpackableMixin):
     """
@@ -135,6 +131,7 @@ class MessageState(UnpackableMixin):
                  state_flags,
                  pad1, pad2):
         self.id = id
+        self.creator = creator_id
         self.interface = ifname
         self.key = (PFStateKey.from_data(key1)[0],
                     PFStateKey.from_data(key2)[0])
@@ -147,7 +144,12 @@ class MessageState(UnpackableMixin):
         self.creation = creation
 
     def __str__(self):
-        str = "%s " % self.get_protocol_name()
+        str = "%(interface)s - %(id)d (created by %(creator)d) - %(proto)s " % {
+            'interface': self.interface,
+            'id': self.id,
+            'creator': self.creator,
+            'proto': self.get_protocol_name(),
+            }
         if self.is_nat():
             str += "%(pub_source)s:%(pub_port)d (%(priv_source)s:%(priv_port)d) -> %(dest)s:%(dest_port)d" % {
                 'pub_source': self.key[0].addr[1],
@@ -187,18 +189,6 @@ class MessageState(UnpackableMixin):
         else:
             return str(self.protocol)
 
-    def dump(self):
-        """Simple debug printing method"""
-        print "ID: %d" % self.id
-        print "IFACE: %s" % self.interface
-        print "PROTOCOL: %d" % self.protocol
-        print "DIRECTION: %d" % self.direction
-        print "TIMEOUT: %d" % self.timeout
-        print "CREATION: %d" % self.creation
-        print "EXPIRES: %d" % self.expire
-        self.key[0].dump()
-        self.key[1].dump()
-
 
 class MessageDeleteCompressed(UnpackableMixin):
     """
@@ -216,6 +206,29 @@ class MessageDeleteCompressed(UnpackableMixin):
 
     def __init__(self, id, creator_id):
         self.id = id
+        self.creator = creator_id
 
-    def dump(self):
-        print "Deleted state %d" % self.id
+    def __str__(self):
+        return "%d (created by %d)" % (self.id, self.creator)
+
+
+class MessageClear(UnpackableMixin):
+    """
+    This class handle psync_clr messages.
+    It corresponds to the following C struct:
+    struct pfsync_clr {
+    char                            ifname[IFNAMSIZ];
+    u_int32_t                       creatorid;
+    } __packed;
+
+    See OpenBSD sources sys/net/if_pfsync.h
+
+    """
+    unpack_format = "!16s I"
+
+    def __init__(self, iface, creator_id):
+        self.interface = iface
+        self.creator = creator_id
+
+    def __str__(self):
+        "Deleted all states on %s (created by %d)" % (self.interface, self.creator)

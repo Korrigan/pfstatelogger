@@ -35,14 +35,6 @@ class BaseAction(object):
             action.messages.append(msg)
         return (action, data)
 
-    @classmethod
-    def is_add_action(cls):
-        return False
-
-    @classmethod
-    def is_del_action(cls):
-        return False
-
     def dump(self):
         """Simple printing debug method"""
         self.header.dump()
@@ -54,25 +46,21 @@ class ActionInsertState(BaseAction):
     """Action class related to inserting states"""
     message_class = MessageState
 
-    @classmethod
-    def is_add_action(cls):
-        return True
 
 class ActionDeleteState(BaseAction):
     """Action class related to deleting states"""
     message_class = MessageState
 
-    @classmethod
-    def is_del_action(cls):
-        return True
 
 class ActionDeleteCompressedState(BaseAction):
     """Action class related to pfsync_del_c action"""
     message_class = MessageDeleteCompressed
 
-    @classmethod
-    def is_del_action(cls):
-        return True
+
+class ActionClearStates(BaseAction):
+    """Action class related to pfsync_clr action"""
+    message_class = MessageClear
+
 
 def build_from_header(shdr, data):
     """
@@ -107,7 +95,7 @@ def build_from_header(shdr, data):
 
     """
     actions = [
-        None,
+        ActionClearStates,
         None,
         None,
         None,
@@ -125,7 +113,7 @@ def build_from_header(shdr, data):
         None,
         ]
 
-    if shdr.action_id > 0 and shdr.action_id < len(actions) and actions[shdr.action_id]:
+    if shdr.action_id >= 0 and shdr.action_id < len(actions) and actions[shdr.action_id]:
         return actions[shdr.action_id].from_data(data, shdr)
     else:
         next_offset = shdr.length * shdr.count
