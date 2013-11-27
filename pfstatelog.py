@@ -9,6 +9,8 @@ import pcapy
 from pfsync.packet import Reader, StateManager
 
 
+usage_string = "Usage: pfstatelog.py [-vd] <pfsync interface>"
+
 # log_handlers is a list of 3 tuples composed of (handler, level, format)
 # level or format may be None in which case it will be overwritten by
 # the defaults log_level and log_format respectively
@@ -40,8 +42,18 @@ def recv_pkt(pcap_hdr, data):
 
 def usage():
     """Print the usage and exits with a erorr code of 1"""
-    print >> sys.stderr, "Usage: pfstatelog.py <pfsync interface>"
+    print >> sys.stderr, usage_string
     sys.exit(1)
+
+
+def help():
+    """Print the help text and exits with error code 0"""
+    print usage_string
+    print ""
+    print "\t-h: Print out this help message"
+    print "\t-v: Enable verbose mode, log output will also be printed on console"
+    print "\t-d: Enable debug mode, debug messages will be logged"
+    sys.exit(0)
 
 
 def setup_logger():
@@ -81,7 +93,7 @@ def get_args(argv):
         usage()
     for o, v in opts:
         if o == '-h':
-            usage()
+            help()
         elif o == '-v':
             log_handlers.append((logging.StreamHandler(stream=sys.stdout), None, None))
         elif o == '-d':
