@@ -2,24 +2,27 @@
 
 import sys
 import logging
-import logging.handlers
+from logging.handlers import SysLogHandler
 
 import pcapy
 
 from pfsync.packet import Reader, StateManager
 
 
-usage_string = "Usage: pfstatelog.py [-vd] <pfsync interface>"
+prog_short_name = "pfstatelog.py"
+usage_string = "Usage: %(name)s [-vd] <pfsync interface>" % {'name': prog_short_name}
 
+log_syslog_device = '/dev/log'
+log_syslog_facility = SysLogHandler.LOG_DAEMON
 # log_handlers is a list of 3 tuples composed of (handler, level, format)
 # level or format may be None in which case it will be overwritten by
 # the defaults log_level and log_format respectively
 log_handlers = [
-    (logging.handlers.SysLogHandler(address='/dev/log'), None, None),
+    (SysLogHandler(address=log_syslog_device, facility=log_syslog_facility), None, None),
     ]
 log_level = level=logging.INFO
 log_format = logging.Formatter('%(name)s: [%(levelname)s] %(message)s')
-logger = logging.getLogger('pfstatelogger')
+logger = logging.getLogger(prog_short_name)
 
 manager = StateManager(logger=logger)
 
@@ -34,7 +37,7 @@ def recv_pkt(pcap_hdr, data):
     from datetime import datetime
 
     (ts, ms) = pcap_hdr.getts()
-    date = "%s,%d" % (str(datetime.fromtimestamp(ts)), ms)
+    date = "%s,%6d" % (str(datetime.fromtimestamp(ts)), ms)
     r = Reader(data, logger=logger)
     for a in r.actions:
         manager.handle_action(a, date)
