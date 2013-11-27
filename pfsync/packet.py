@@ -9,10 +9,16 @@ class Reader(object):
     """
     PFSYNC_VERSION = 6
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, logger=None):
+        import logging
+
         self.actions = []
         if data:
             self.parse(data)
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger(__name__)
 
     def parse(self, data):
         """
@@ -24,14 +30,14 @@ class Reader(object):
 
         (self.header, data) = Header.from_data(data)
         if not self.header.version == self.PFSYNC_VERSION:
-            print "WARNING: dealing with bad pfsync version (%d)" % self.header.version
+            self.logger.warning("dealing with bad pfsync version (%d)" % self.header.version)
         while len(data) >= SubHeader.get_cstruct_size():
             (shdr, data) = SubHeader.from_data(data)
             (action, data) = build_from_header(shdr, data)
             if action:
                 self.actions.append(action)
         if len(data) > 0:
-            print "WARNING: there is still data to process"
+            self.logger.warning("there is still data to process")
 
 
 class StateManager(object):
@@ -45,7 +51,9 @@ class StateManager(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, logger=None):
+        import logging
+
         self.handles = [
             self._clr_states,
             None,
@@ -64,8 +72,13 @@ class StateManager(object):
             None,
             None,
             ]
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger(__name__)
+        
 
-    def handle_action(self, action):
+    def handle_action(self, action, date):
         """
         This method call the right internal method for each message of
         the action class.
@@ -78,17 +91,17 @@ class StateManager(object):
         id = action.header.action_id
         if id >= 0 and id < len(self.handles) and self.handles[id]:
             for m in action.messages:
-                return self.handles[id](m)
+                return self.handles[id](m, date)
 
-    def _clr_states(self, msg):
+    def _clr_states(self, msg, date):
         """
         Clear all states on a specified interface by a specific creator
         Handles pfsync message clr
 
         """
-        print "CLR STATES: %s" % str(msg)
+        self.logger.info("[%s] CLR STATES: %s" % (date, str(msg)))
 
-    def _add_state(self, state):
+    def _add_state(self, state, date):
         """
         Add a state and log it
         Should implements a way to check if not already in list
@@ -98,13 +111,13 @@ class StateManager(object):
 
         """
         if state.direction == 2:
-            print "INS STATE: %s" % str(state)
+            self.logger.info("[%s] INS STATE: %s" % (date, str(state)))
 
-    def _del_state(self, state):
+    def _del_state(self, state, date):
         """
         Delete state by id
         Works with pfsync messages del and del_c
 
         """
-        print "DEL STATE: %s" % str(state)
+        self.logger.info("[%s] DEL STATE: %s" % (date, str(state)))
 
