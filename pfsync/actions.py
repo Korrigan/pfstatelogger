@@ -35,12 +35,6 @@ class BaseAction(object):
             action.messages.append(msg)
         return (action, data)
 
-    def dump(self):
-        """Simple printing debug method"""
-        self.header.dump()
-        for msg in self.messages:
-            msg.dump()
-
 
 class ActionInsertState(BaseAction):
     """Action class related to inserting states"""
