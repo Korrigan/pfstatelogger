@@ -77,6 +77,9 @@ class MessageState(UnpackableMixin):
 
     See OpenBSD sources sys/net/if_pfsync.h
 
+    __str__ and is_nat methods are inspired of OpenBSD;s tcpdump
+    See OpenBSD sources src/usr.sbin/tcpdump/print-pfsync.c
+
     """
     @classmethod
     def get_unpack_format(cls):
@@ -132,7 +135,7 @@ class MessageState(UnpackableMixin):
                  pad1, pad2):
         self.id = id
         self.creator = creator_id
-        self.interface = ifname
+        self.interface = ifname.split('\0')[0] # Berk
         self.key = (PFStateKey.from_data(key1)[0],
                     PFStateKey.from_data(key2)[0])
         self.packets = ((packets1, packets2), (packets3, packets4))
@@ -144,7 +147,7 @@ class MessageState(UnpackableMixin):
         self.creation = creation
 
     def __str__(self):
-        str = "%(interface)s - %(id)d (created by %(creator)d) - %(proto)s " % {
+        str = "%(id)d (created by %(creator)d) - %(interface)s %(proto)s " % {
             'interface': self.interface,
             'id': self.id,
             'creator': self.creator,
